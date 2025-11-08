@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR TEMPMAIL</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'space': ['Space Grotesk', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @keyframes progress {
+            0% { width: 0%; }
+            100% { width: 100%; }
+        }
+        
+        @keyframes toastIn {
+            0% { transform: translateY(100%); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
+        }
+        
+        @keyframes toastOut {
+            0% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(100%); opacity: 0; }
+        }
+        
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        .toast-in {
+            animation: toastIn 0.3s ease-out forwards;
+        }
+        
+        .toast-out {
+            animation: toastOut 0.3s ease-in forwards;
+        }
+        
+        .loading-bar {
+            animation: progress 3s ease-in-out forwards;
+        }
+        
+        .avatar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            font-weight: 600;
+            color: white;
+        }
+        
+        .email-body {
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+        
+        .message-preview {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        .email-content {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            line-height: 1.6;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    </style>
+</head>
+<body class="font-space bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+    <!-- Splash Screen -->
+    <div id="splashScreen" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-gradient-to-br from-primary-500 to-primary-700 dark:from-gray-800 dark:to-gray-900 text-white transition-all duration-500">
+        <div class="text-center p-6">
+            <h1 class="text-4xl font-bold mb-2">AR TEMPMAIL</h1>
+            <p class="text-lg opacity-90 mb-8">No Login, No Signup, Just Privacy.</p>
+            <div class="w-64 h-2 bg-white/30 rounded-full overflow-hidden">
+                <div class="loading-bar h-full bg-white rounded-full"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App Container -->
+    <div id="app" class="max-w-md mx-auto min-h-screen bg-white dark:bg-gray-800 shadow-lg overflow-hidden hidden">
+        <!-- Header -->
+        <header class="bg-gradient-to-r from-primary-500 to-primary-600 dark:from-gray-800 dark:to-gray-900 text-white p-4 flex justify-between items-center">
+            <h1 class="text-xl font-bold">AR TEMPMAIL</h1>
+            <button id="themeToggle" class="p-2 rounded-full hover:bg-white/20 transition-colors">
+                <span class="material-symbols-outlined">light_mode</span>
+            </button>
+        </header>
+
+        <!-- Main Content -->
+        <main class="p-4 pb-20 overflow-y-auto no-scrollbar" style="max-height: calc(100vh - 64px)">
+            <!-- Action Buttons -->
+            <div class="flex gap-2 mb-6">
+                <button id="changeMailBtn" class="flex-1 bg-primary-500 hover:bg-primary-600 text-white py-3 px-4 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors">
+                    <span class="material-symbols-outlined text-lg">autorenew</span>
+                    Change Mail
+                </button>
+                <button id="deleteMailBtn" class="flex-1 bg-red-500 hover:bg-red-600 text-white py-3 px-4 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors">
+                    <span class="material-symbols-outlined text-lg">delete</span>
+                    Delete Mail
+                </button>
+            </div>
+
+            <!-- Email Display Card -->
+            <div class="bg-gradient-to-r from-primary-50 to-primary-100 dark:from-gray-700 dark:to-gray-800 rounded-xl p-4 mb-6 shadow">
+                <div class="flex justify-between items-center mb-2">
+                    <h2 class="text-sm font-medium text-gray-600 dark:text-gray-300">Your Temporary Email</h2>
+                    <button id="copyBtn" class="text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-200 transition-colors flex items-center gap-1">
+                        <span class="material-symbols-outlined text-lg">content_copy</span>
+                        Copy
+                    </button>
+                </div>
+                <p id="currentEmail" class="text-lg font-medium text-gray-800 dark:text-white break-all">Loading...</p>
+            </div>
+
+            <!-- Timer Card -->
+            <div class="bg-gradient-to-r from-amber-50 to-amber-100 dark:from-amber-900/30 dark:to-amber-800/30 rounded-xl p-4 mb-6 shadow">
+                <div class="flex justify-between items-center mb-2">
+                    <h2 class="text-sm font-medium text-amber-700 dark:text-amber-300">Email Lifetime</h2>
+                    <button id="extendTimerBtn" class="text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-200 transition-colors flex items-center gap-1">
+                        <span class="material-symbols-outlined text-lg">timer</span>
+                        Extend
+                    </button>
+                </div>
+                <p id="timerDisplay" class="text-2xl font-bold text-amber-700 dark:text-amber-300">10:00</p>
+            </div>
+
+            <!-- Inbox Section -->
+            <div class="mb-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-bold text-gray-800 dark:text-white">Inbox</h2>
+                    <button id="refreshBtn" class="text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-200 transition-colors flex items-center gap-1">
+                        <span class="material-symbols-outlined text-lg">refresh</span>
+                        Refresh
+                    </button>
+                </div>
+
+                <div id="inboxContainer" class="space-y-3">
+                    <!-- Inbox items will be dynamically added here -->
+                    <div id="emptyInbox" class="text-center py-10">
+                        <span class="material-symbols-outlined text-5xl text-gray-400 dark:text-gray-500 mb-4">inbox</span>
+                        <p class="text-gray-500 dark:text-gray-400">Your inbox is empty</p>
+                        <p class="text-gray-400 dark:text-gray-500 text-sm">Waiting for incoming emails...</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Email Detail Screen - MOVED OUTSIDE OF MAIN APP CONTAINER -->
+    <div id="emailDetailScreen" class="fixed inset-0 z-40 bg-white dark:bg-gray-800 p-4 hidden flex flex-col">
+        <!-- Header -->
+        <div class="flex items-center mb-6">
+            <button id="backBtn" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors mr-2">
+                <span class="material-symbols-outlined">arrow_back</span>
+            </button>
+            <h2 class="text-lg font-bold text-gray-800 dark:text-white">Message</h2>
+        </div>
+
+        <!-- Email Content -->
+        <div class="flex-1 overflow-y-auto no-scrollbar">
+            <div class="mb-6">
+                <h1 id="emailSubject" class="text-xl font-bold text-gray-800 dark:text-white mb-4">Loading...</h1>
+                
+                <div class="flex items-start gap-3 mb-4">
+                    <div id="senderAvatar" class="avatar bg-primary-500">?</div>
+                    <div class="flex-1">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p id="senderName" class="font-medium text-gray-800 dark:text-white">Loading...</p>
+                                <p id="senderEmail" class="text-sm text-gray-600 dark:text-gray-400">Loading...</p>
+                            </div>
+                            <p id="emailTime" class="text-sm text-gray-500 dark:text-gray-400">Loading...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="emailBody" class="email-body bg-gray-50 dark:bg-gray-700 rounded-lg p-4 text-gray-800 dark:text-gray-200">
+                <div class="flex items-center justify-center py-8">
+                    <span class="material-symbols-outlined text-4xl text-gray-400 mr-3 animate-spin">refresh</span>
+                    <p class="text-gray-500">Loading email content...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Button -->
+        <div class="mt-6">
+            <button id="deleteMessageBtn" class="w-full bg-red-500 hover:bg-red-600 text-white py-3 px-4 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors">
+                <span class="material-symbols-outlined text-lg">delete</span>
+                Delete Message
+            </button>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 bg-gray-800 dark:bg-gray-700 text-white px-4 py-3 rounded-lg shadow-lg hidden max-w-xs text-center"></div>
+
+    <script>
+        // API Configuration
+        const API_BASE_URL = 'https://api.mail.tm';
+        
+        // App State
+        let state = {
+            currentAccount: null,
+            authToken: null,
+            currentEmail: '',
+            timer: 600, // 10 minutes in seconds
+            timerInterval: null,
+            inboxInterval: null,
+            messages: [],
+            currentDomain: '',
+            currentMessage: null
+        };
+
+        // DOM Elements
+        const splashScreen = document.getElementById('splashScreen');
+        const app = document.getElementById('app');
+        const themeToggle = document.getElementById('themeToggle');
+        const currentEmailEl = document.getElementById('currentEmail');
+        const timerDisplay = document.getElementById('timerDisplay');
+        const inboxContainer = document.getElementById('inboxContainer');
+        const emptyInbox = document.getElementById('emptyInbox');
+        const emailDetailScreen = document.getElementById('emailDetailScreen');
+        const emailSubject = document.getElementById('emailSubject');
+        const senderAvatar = document.getElementById('senderAvatar');
+        const senderName = document.getElementById('senderName');
+        const senderEmail = document.getElementById('senderEmail');
+        const emailTime = document.getElementById('emailTime');
+        const emailBody = document.getElementById('emailBody');
+        const toast = document.getElementById('toast');
+        
+        // Buttons
+        const changeMailBtn = document.getElementById('changeMailBtn');
+        const deleteMailBtn = document.getElementById('deleteMailBtn');
+        const copyBtn = document.getElementById('copyBtn');
+        const extendTimerBtn = document.getElementById('extendTimerBtn');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const backBtn = document.getElementById('backBtn');
+        const deleteMessageBtn = document.getElementById('deleteMessageBtn');
+
+        // Utility Functions
+        function fetchWithTimeout(url, options = {}, timeout = 10000) {
+            return Promise.race([
+                fetch(url, options),
+                new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('Request timeout')), timeout)
+                )
+            ]);
+        }
+
+        function escapeHTML(unsafe) {
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins} min ago`;
+            if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+            if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+            
+            return date.toLocaleDateString();
+        }
+
+        function showSpinner(button) {
+            const originalText = button.innerHTML;
+            button.innerHTML = '<span class="material-symbols-outlined animate-spin">refresh</span> Loading...';
+            button.disabled = true;
+            
+            return () => {
+                button.innerHTML = originalText;
+                button.disabled = false;
+            };
+        }
+
+        function showToast(message, type = 'info') {
+            // Remove any existing toast
+            if (toast.classList.contains('toast-in')) {
+                toast.classList.remove('toast-in');
+                toast.classList.add('toast-out');
+                setTimeout(() => {
+                    toast.classList.add('hidden');
+                    toast.classList.remove('toast-out');
+                }, 300);
+            }
+            
+            // Set message and style
+            toast.textContent = message;
+            toast.className = 'fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 px-4 py-3 rounded-lg shadow-lg max-w-xs text-center';
+            
+            // Apply type-based styling
+            if (type === 'success') {
+                toast.classList.add('bg-green-500', 'text-white');
+            } else if (type === 'error') {
+                toast.classList.add('bg-red-500', 'text-white');
+            } else if (type === 'warning') {
+                toast.classList.add('bg-amber-500', 'text-white');
+            } else {
+                toast.classList.add('bg-gray-800', 'dark:bg-gray-700', 'text-white');
+            }
+            
+            // Show with animation
+            toast.classList.remove('hidden');
+            toast.classList.add('toast-in');
+            
+            // Auto hide after 3 seconds
+            setTimeout(() => {
+                toast.classList.remove('toast-in');
+                toast.classList.add('toast-out');
+                setTimeout(() => {
+                    toast.classList.add('hidden');
+                    toast.classList.remove('toast-out');
+                }, 300);
+            }, 3000);
+        }
+
+        function copyToClipboard(text) {
+            // Create a temporary textarea element
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            
+            try {
+                const successful = document.execCommand('copy');
+                document.body.removeChild(textarea);
+                
+                if (successful) {
+                    showToast('Copied to clipboard!', 'success');
+                } else {
+                    showToast('Failed to copy', 'error');
+                }
+            } catch (err) {
+                document.body.removeChild(textarea);
+                console.error('Failed to copy: ', err);
+                showToast('Failed to copy', 'error');
+            }
+        }
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function startTimer() {
+            // Clear existing timer
+            if (state.timerInterval) {
+                clearInterval(state.timerInterval);
+            }
+            
+            // Update timer display
+            timerDisplay.textContent = formatTime(state.timer);
+            
+            // Start countdown
+            state.timerInterval = setInterval(() => {
+                state.timer--;
+                timerDisplay.textContent = formatTime(state.timer);
+                
+                if (state.timer <= 0) {
+                    clearInterval(state.timerInterval);
+                    showToast('Timer expired! Extend or get new email.', 'warning');
+                }
+            }, 1000);
+        }
+
+        function extendTimer() {
+            state.timer = 600; // Reset to 10 minutes
+            startTimer();
+            showToast('Timer extended by 10 minutes', 'success');
+        }
+
+        // API Functions
+        async function getDomain() {
+            try {
+                const response = await fetchWithTimeout(`${API_BASE_URL}/domains`);
+                const data = await response.json();
+                
+                if (data && data['hydra:member'] && data['hydra:member'].length > 0) {
+                    return data['hydra:member'][0].domain;
+                }
+                
+                throw new Error('No domains available');
+            } catch (error) {
+                console.error('Error fetching domain:', error);
+                showToast('Failed to get email domain', 'error');
+                throw error;
+            }
+        }
+
+        async function createAccount(email, password) {
+            try {
+                const response = await fetchWithTimeout(`${API_BASE_URL}/accounts`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        address: email,
+                        password: password
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                return await response.json();
+            } catch (error) {
+                console.error('Error creating account:', error);
+                showToast('Failed to create email account', 'error');
+                throw error;
+            }
+        }
+
+        async function getToken(email, password) {
+            try {
+                const response = await fetchWithTimeout(`${API_BASE_URL}/token`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        address: email,
+                        password: password
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                return data.token;
+            } catch (error) {
+                console.error('Error getting token:', error);
+                showToast('Failed to authenticate', 'error');
+                throw error;
+            }
+        }
+
+        async function getMessages() {
+            if (!state.authToken) return [];
+            
+            try {
+                const response = await fetchWithTimeout(`${API_BASE_URL}/messages`, {
+                    headers: {
+                        'Authorization': `Bearer ${state.authToken}`
+                    }
+                });
+                
+                if (response.status === 401) {
+                    // Token expired, generate new email
+                    showToast('Session expired, generating new email...', 'warning');
+                    await getNewEmail();
+                    return [];
+                }
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                return data['hydra:member'] || [];
+            } catch (error) {
+                console.error('Error fetching messages:', error);
+                // Don't show toast for common network errors to avoid spam
+                if (!error.message.includes('timeout')) {
+                    showToast('Failed to fetch messages', 'error');
+                }
+                return [];
+            }
+        }
+
+        async function getMessage(id) {
+            if (!state.authToken) return null;
+            
+            try {
+                const response = await fetchWithTimeout(`${API_BASE_URL}/messages/${id}`, {
+                    headers: {
+                        'Authorization': `Bearer ${state.authToken}`
+                    }
+                });
+                
+                if (response.status === 401) {
+                    // Token expired, generate new email
+                    showToast('Session expired, generating new email...', 'warning');
+                    await getNewEmail();
+                    return null;
+                }
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                console.error('Error fetching message:', error);
+                showToast('Failed to load message', 'error');
+                return null;
+            }
+        }
+
+        async function deleteAccount() {
+            if (!state.authToken || !state.currentAccount) return;
+            
+            try {
+                await fetchWithTimeout(`${API_BASE_URL}/accounts/${state.currentAccount.id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${state.authToken}`
+                    }
+                });
+            } catch (error) {
+                console.error('Error deleting account:', error);
+                // Don't show error toast as we're generating a new one anyway
+            }
+        }
+
+        // Core App Functions
+        async function getNewEmail() {
+            const hideSpinner = showSpinner(changeMailBtn);
+            
+            try {
+                // Get a domain first
+                const domain = await getDomain();
+                state.currentDomain = domain;
+                
+                // Generate random email and password
+                const randomString = Math.random().toString(36).substring(2, 10);
+                const email = `${randomString}@${domain}`;
+                const password = Math.random().toString(36).substring(2, 15);
+                
+                // Create account
+                state.currentAccount = await createAccount(email, password);
+                
+                // Get authentication token
+                state.authToken = await getToken(email, password);
+                
+                // Update state and UI
+                state.currentEmail = email;
+                currentEmailEl.textContent = email;
+                
+                // Reset timer
+                state.timer = 600;
+                startTimer();
+                
+                // Clear existing messages
+                state.messages = [];
+                renderInbox();
+                
+                // Start inbox polling
+                startInboxPolling();
+                
+                showToast('New email generated!', 'success');
+            } catch (error) {
+                console.error('Error generating new email:', error);
+                // Error toast is shown by individual functions
+            } finally {
+                hideSpinner();
+            }
+        }
+
+        async function deleteCurrentMail() {
+            const hideSpinner = showSpinner(deleteMailBtn);
+            
+            try {
+                // Delete current account if exists
+                if (state.authToken && state.currentAccount) {
+                    await deleteAccount();
+                }
+                
+                // Generate new email
+                await getNewEmail();
+                
+                showToast('Email deleted and new one generated', 'success');
+            } catch (error) {
+                console.error('Error deleting mail:', error);
+                showToast('Failed to delete email', 'error');
+            } finally {
+                hideSpinner();
+            }
+        }
+
+        function startInboxPolling() {
+            // Clear existing interval
+            if (state.inboxInterval) {
+                clearInterval(state.inboxInterval);
+            }
+            
+            // Check inbox immediately
+            checkInbox();
+            
+            // Then set up periodic checking
+            state.inboxInterval = setInterval(() => {
+                checkInbox();
+            }, 10000); // Every 10 seconds
+        }
+
+        async function checkInbox() {
+            try {
+                const messages = await getMessages();
+                
+                // Check if we have new messages
+                const newMessageCount = messages.length - state.messages.length;
+                
+                // Update messages
+                state.messages = messages.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                
+                // Render inbox
+                renderInbox();
+                
+                // Show notification for new messages
+                if (newMessageCount > 0) {
+                    showToast(`${newMessageCount} new email${newMessageCount > 1 ? 's' : ''} received`, 'success');
+                }
+            } catch (error) {
+                console.error('Error checking inbox:', error);
+                // Error handling is done in getMessages
+            }
+        }
+
+        function renderInbox() {
+            // Clear inbox container
+            inboxContainer.innerHTML = '';
+            
+            // Show empty state if no messages
+            if (state.messages.length === 0) {
+                inboxContainer.appendChild(emptyInbox);
+                emptyInbox.classList.remove('hidden');
+                return;
+            }
+            
+            // Hide empty state
+            emptyInbox.classList.add('hidden');
+            
+            // Render each message
+            state.messages.forEach(message => {
+                const messageEl = document.createElement('div');
+                messageEl.className = 'bg-white dark:bg-gray-700 rounded-lg p-3 shadow-sm border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors cursor-pointer fade-in';
+                messageEl.addEventListener('click', () => openEmail(message.id));
+                
+                // Extract sender name from from.name or from.address
+                const from = message.from;
+                let senderName = '';
+                let senderInitial = '';
+                
+                if (from && from.name) {
+                    senderName = from.name;
+                    senderInitial = from.name.charAt(0).toUpperCase();
+                } else if (from && from.address) {
+                    senderName = from.address.split('@')[0];
+                    senderInitial = senderName.charAt(0).toUpperCase();
+                } else {
+                    senderName = 'Unknown';
+                    senderInitial = '?';
+                }
+                
+                // Create avatar with initial
+                const avatarColor = `hsl(${Math.floor(Math.random() * 360)}, 70%, 60%)`;
+                
+                messageEl.innerHTML = `
+                    <div class="flex gap-3">
+                        <div class="avatar flex-shrink-0" style="background-color: ${avatarColor}">${senderInitial}</div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex justify-between items-start mb-1">
+                                <p class="font-medium text-gray-800 dark:text-white truncate">${escapeHTML(senderName)}</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap ml-2">${formatDate(message.createdAt)}</p>
+                            </div>
+                            <p class="font-medium text-gray-700 dark:text-gray-300 text-sm mb-1 truncate">${escapeHTML(message.subject || 'No subject')}</p>
+                            <p class="text-gray-600 dark:text-gray-400 text-sm message-preview">${escapeHTML(message.intro || 'No preview available')}</p>
+                        </div>
+                    </div>
+                `;
+                
+                inboxContainer.appendChild(messageEl);
+            });
+        }
+
+        async function openEmail(id) {
+            console.log('Opening email with ID:', id);
+            
+            // Show email detail screen and hide main app
+            emailDetailScreen.classList.remove('hidden');
+            app.classList.add('hidden');
+            
+            // Show loading state
+            emailSubject.textContent = 'Loading...';
+            senderName.textContent = 'Loading...';
+            senderEmail.textContent = 'Loading...';
+            emailTime.textContent = 'Loading...';
+            emailBody.innerHTML = `
+                <div class="flex items-center justify-center py-8">
+                    <span class="material-symbols-outlined text-4xl text-gray-400 mr-3 animate-spin">refresh</span>
+                    <p class="text-gray-500">Loading email content...</p>
+                </div>
+            `;
+            
+            try {
+                const message = await getMessage(id);
+                console.log('Received message:', message);
+                
+                if (!message) {
+                    showToast('Failed to load email', 'error');
+                    return;
+                }
+                
+                state.currentMessage = message;
+                
+                // Update UI with message details
+                emailSubject.textContent = message.subject || 'No subject';
+                
+                const from = message.from;
+                let senderNameText = 'Unknown';
+                let senderEmailAddr = '';
+                let senderInitial = '?';
+                
+                if (from && from.name) {
+                    senderNameText = from.name;
+                    senderEmailAddr = from.address || '';
+                    senderInitial = from.name.charAt(0).toUpperCase();
+                } else if (from && from.address) {
+                    senderNameText = from.address.split('@')[0];
+                    senderEmailAddr = from.address;
+                    senderInitial = senderNameText.charAt(0).toUpperCase();
+                }
+                
+                senderName.textContent = senderNameText;
+                senderEmail.textContent = senderEmailAddr;
+                emailTime.textContent = formatDate(message.createdAt);
+                
+                // Set avatar
+                const avatarColor = `hsl(${Math.floor(Math.random() * 360)}, 70%, 60%)`;
+                senderAvatar.style.backgroundColor = avatarColor;
+                senderAvatar.textContent = senderInitial;
+                
+                // Set email body - handle both HTML and text content
+                let emailContent = '';
+                
+                if (message.html && message.html.length > 0) {
+                    // For HTML content, we'll create a safe display
+                    emailContent = `<div class="email-content">${message.html}</div>`;
+                } else if (message.text) {
+                    // Convert plain text to HTML with line breaks
+                    emailContent = `<div class="email-content">${escapeHTML(message.text)}</div>`;
+                } else if (message.intro) {
+                    // Use the intro as fallback
+                    emailContent = `<div class="email-content">${escapeHTML(message.intro)}</div>`;
+                } else {
+                    emailContent = '<p class="text-gray-500 italic">No content available</p>';
+                }
+                
+                emailBody.innerHTML = emailContent;
+                
+            } catch (error) {
+                console.error('Error opening email:', error);
+                showToast('Failed to load email content', 'error');
+                emailBody.innerHTML = '<p class="text-gray-500 italic">Failed to load email content</p>';
+            }
+        }
+
+        function closeEmail() {
+            emailDetailScreen.classList.add('hidden');
+            app.classList.remove('hidden');
+        }
+
+        function deleteCurrentMessage() {
+            if (state.currentMessage) {
+                // In a real app, we would delete from server
+                // For this demo, we'll just remove from local state
+                state.messages = state.messages.filter(msg => msg.id !== state.currentMessage.id);
+                renderInbox();
+                showToast('Message deleted', 'success');
+                closeEmail();
+            }
+        }
+
+        // Theme Management
+        function initTheme() {
+            // Check for saved theme preference or default to light
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            
+            if (savedTheme === 'dark') {
+                document.documentElement.classList.add('dark');
+                themeToggle.innerHTML = '<span class="material-symbols-outlined">dark_mode</span>';
+            } else {
+                document.documentElement.classList.remove('dark');
+                themeToggle.innerHTML = '<span class="material-symbols-outlined">light_mode</span>';
+            }
+        }
+
+        function toggleTheme() {
+            if (document.documentElement.classList.contains('dark')) {
+                document.documentElement.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+                themeToggle.innerHTML = '<span class="material-symbols-outlined">light_mode</span>';
+            } else {
+                document.documentElement.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+                themeToggle.innerHTML = '<span class="material-symbols-outlined">dark_mode</span>';
+            }
+        }
+
+        // App Initialization
+        async function initApp() {
+            // Initialize theme
+            initTheme();
+            
+            // Wait for splash screen animation
+            setTimeout(async () => {
+                // Hide splash screen
+                splashScreen.classList.add('opacity-0');
+                
+                // Show main app after transition
+                setTimeout(() => {
+                    splashScreen.classList.add('hidden');
+                    app.classList.remove('hidden');
+                }, 500);
+                
+                // Generate initial email
+                await getNewEmail();
+            }, 3000); // Match the loading bar animation duration
+        }
+
+        // Event Listeners
+        themeToggle.addEventListener('click', toggleTheme);
+        changeMailBtn.addEventListener('click', getNewEmail);
+        deleteMailBtn.addEventListener('click', deleteCurrentMail);
+        copyBtn.addEventListener('click', () => copyToClipboard(state.currentEmail));
+        extendTimerBtn.addEventListener('click', extendTimer);
+        refreshBtn.addEventListener('click', checkInbox);
+        backBtn.addEventListener('click', closeEmail);
+        deleteMessageBtn.addEventListener('click', deleteCurrentMessage);
+
+        // Initialize the app when DOM is loaded
+        document.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>
